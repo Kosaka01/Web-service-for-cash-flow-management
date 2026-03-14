@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-card p-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+    <h1 class="h4 mb-0">Записи ДДС</h1>
+    <a class="btn btn-primary" href="/records/new">Добавить запись</a>
+  </div>
+
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-12 col-md-3">
+      <label class="form-label">{{ form.date_from.label }}</label>
+      {{ form.date_from }}
+    </div>
+    <div class="col-12 col-md-3">
+      <label class="form-label">{{ form.date_to.label }}</label>
+      {{ form.date_to }}
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label">{{ form.status.label }}</label>
+      {{ form.status }}
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label">{{ form.type.label }}</label>
+      {{ form.type }}
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label">{{ form.category.label }}</label>
+      {{ form.category }}
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label">{{ form.subcategory.label }}</label>
+      {{ form.subcategory }}
+    </div>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-outline-primary" type="submit">Применить фильтры</button>
+      <a class="btn btn-outline-secondary" href="/">Сбросить</a>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr class="table-light">
+          <th>Дата</th>
+          <th>Статус</th>
+          <th>Тип</th>
+          <th>Категория</th>
+          <th>Подкатегория</th>
+          <th class="text-end">Сумма, ₽</th>
+          <th>Комментарий</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+          <tr>
+            <td>{{ record.date|date:"d.m.Y" }}</td>
+            <td><span class="badge badge-soft">{{ record.status.name }}</span></td>
+            <td>{{ record.type.name }}</td>
+            <td>{{ record.category.name }}</td>
+            <td>{{ record.subcategory.name }}</td>
+            <td class="text-end">{{ record.amount }}</td>
+            <td class="text-muted">{{ record.comment|default:"—" }}</td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm" role="group">
+                <a class="btn btn-outline-secondary" href="/records/{{ record.id }}/edit">Ред.</a>
+                <a class="btn btn-outline-danger" href="/records/{{ record.id }}/delete">Удалить</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">Нет записей</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const typeSelect = document.getElementById('id_type');
+  const categorySelect = document.getElementById('id_category');
+  const subcategorySelect = document.getElementById('id_subcategory');
+
+  async function updateCategories() {
+    const typeId = typeSelect.value;
+    if (!typeId) {
+      categorySelect.innerHTML = '<option value="">---------</option>';
+      subcategorySelect.innerHTML = '<option value="">---------</option>';
+      return;
+    }
+    const response = await fetch(`/ajax/categories?type_id=${typeId}`);
+    const data = await response.json();
+    categorySelect.innerHTML = '<option value="">---------</option>';
+    data.results.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      if (String(item.id) === '{{ form.category.value|default:""|escapejs }}') {
+        option.selected = true;
+      }
+      categorySelect.appendChild(option);
+    });
+    await updateSubcategories();
+  }
+
+  async function updateSubcategories() {
+    const categoryId = categorySelect.value;
+    if (!categoryId) {
+      subcategorySelect.innerHTML = '<option value="">---------</option>';
+      return;
+    }
+    const response = await fetch(`/ajax/subcategories?category_id=${categoryId}`);
+    const data = await response.json();
+    subcategorySelect.innerHTML = '<option value="">---------</option>';
+    data.results.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      if (String(item.id) === '{{ form.subcategory.value|default:""|escapejs }}') {
+        option.selected = true;
+      }
+      subcategorySelect.appendChild(option);
+    });
+  }
+
+  if (typeSelect) {
+    typeSelect.addEventListener('change', updateCategories);
+  }
+  if (categorySelect) {
+    categorySelect.addEventListener('change', updateSubcategories);
+  }
+</script>
+{% endblock %}

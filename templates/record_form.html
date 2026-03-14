@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-card p-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 mb-0">{{ title }}</h1>
+    <a class="btn btn-outline-secondary" href="/">Назад к списку</a>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="row g-3">
+      <div class="col-12 col-md-3 required">
+        <label class="form-label" for="{{ form.date.id_for_label }}">Дата</label>
+        {{ form.date }}
+        {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors }}</div>{% endif %}
+      </div>
+      <div class="col-12 col-md-3 required">
+        <label class="form-label" for="{{ form.status.id_for_label }}">Статус</label>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors }}</div>{% endif %}
+      </div>
+      <div class="col-12 col-md-3 required">
+        <label class="form-label" for="{{ form.type.id_for_label }}">Тип</label>
+        {{ form.type }}
+        {% if form.type.errors %}<div class="text-danger small">{{ form.type.errors }}</div>{% endif %}
+      </div>
+      <div class="col-12 col-md-3 required">
+        <label class="form-label" for="{{ form.amount.id_for_label }}">Сумма, ₽</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}<div class="text-danger small">{{ form.amount.errors }}</div>{% endif %}
+      </div>
+
+      <div class="col-12 col-md-6 required">
+        <label class="form-label" for="{{ form.category.id_for_label }}">Категория</label>
+        {{ form.category }}
+        {% if form.category.errors %}<div class="text-danger small">{{ form.category.errors }}</div>{% endif %}
+      </div>
+      <div class="col-12 col-md-6 required">
+        <label class="form-label" for="{{ form.subcategory.id_for_label }}">Подкатегория</label>
+        {{ form.subcategory }}
+        {% if form.subcategory.errors %}<div class="text-danger small">{{ form.subcategory.errors }}</div>{% endif %}
+      </div>
+
+      <div class="col-12">
+        <label class="form-label" for="{{ form.comment.id_for_label }}">Комментарий</label>
+        {{ form.comment }}
+        {% if form.comment.errors %}<div class="text-danger small">{{ form.comment.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Сохранить</button>
+      <a class="btn btn-outline-secondary" href="/">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  const typeSelect = document.getElementById('id_type');
+  const categorySelect = document.getElementById('id_category');
+  const subcategorySelect = document.getElementById('id_subcategory');
+
+  async function updateCategories() {
+    const typeId = typeSelect.value;
+    if (!typeId) {
+      categorySelect.innerHTML = '<option value="">---------</option>';
+      subcategorySelect.innerHTML = '<option value="">---------</option>';
+      return;
+    }
+    const response = await fetch(`/ajax/categories?type_id=${typeId}`);
+    const data = await response.json();
+    const currentCategory = '{{ form.category.value|default:""|escapejs }}';
+    categorySelect.innerHTML = '<option value="">---------</option>';
+    data.results.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      if (String(item.id) === currentCategory) {
+        option.selected = true;
+      }
+      categorySelect.appendChild(option);
+    });
+    await updateSubcategories();
+  }
+
+  async function updateSubcategories() {
+    const categoryId = categorySelect.value;
+    if (!categoryId) {
+      subcategorySelect.innerHTML = '<option value="">---------</option>';
+      return;
+    }
+    const response = await fetch(`/ajax/subcategories?category_id=${categoryId}`);
+    const data = await response.json();
+    const currentSubcategory = '{{ form.subcategory.value|default:""|escapejs }}';
+    subcategorySelect.innerHTML = '<option value="">---------</option>';
+    data.results.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      if (String(item.id) === currentSubcategory) {
+        option.selected = true;
+      }
+      subcategorySelect.appendChild(option);
+    });
+  }
+
+  if (typeSelect) {
+    typeSelect.addEventListener('change', updateCategories);
+  }
+  if (categorySelect) {
+    categorySelect.addEventListener('change', updateSubcategories);
+  }
+</script>
+{% endblock %}
